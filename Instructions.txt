@@ -1,0 +1,6 @@
+Instructions:
+place the number inside the green box of the screen displayed
+NOTE:
+use dark characters on a light page
+press p to toggle bot
+press x to exit
