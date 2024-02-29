@@ -1,9 +1,10 @@
 Instructions:
-place the number inside the green box of the screen displayed
+choose from the two modes of input:
+1) on canvas : A pygame screen will appear on which you can draw nad would be predicted realtime, close to exit
+2) through webcam : place the number written on a page inside the green box and switch the bot on using 'b' key, press x to exit
 
 NOTE:
-use dark characters on a light page
-press p to toggle bot
-press x to exit
-
-Feel free to change code according to you need :)
+use dark characters on a light page in webcam mode
+write in a understandable manner
+if using webcam mode, make numbers thick enough to be noticed on input window
+if no window appears check taskbar
