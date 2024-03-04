@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import pygame, sys
-
+from imutils import resize
 
 # if ou want it shows image in form of array (currently uncalled)
-def show(data, index):
+def show(image):
 
-    plt.imshow(data[index], cmap=plt.get_cmap('gray'))  
+    plt.imshow(image, cmap=plt.get_cmap('gray'))  
     plt.show()          #shows image as a graph
-    print(data[index])
+    print(image)
 
 
 # function to make a neural network
@@ -36,9 +36,9 @@ def make_model(data, epochs):
 
 # prediction function
 def predict(input_image, ml_model):
-    predicted_probabilities = ml_model.predict(np.expand_dims(input_image, axis=0))  # gives probability of every class
-    pred = predicted_probabilities.argmax()     # finds most probable prediction
-    percentage = int(predicted_probabilities[0, pred] * 10000) / 100  # probability of that prediction
+    predicted_probabilities = ml_model(np.expand_dims(input_image, axis=0))     # gives probability of every class
+    pred = np.argmax(predicted_probabilities, axis=1)[0]                        # finds most probable prediction
+    percentage = int(predicted_probabilities[0, pred] * 10000) / 100            # probability of that prediction
     output = f"{pred} : {percentage}%"      # prediction
     return str(output)
 
@@ -49,7 +49,7 @@ def from_cam(model):
     on = False      # checks if prediciton is on or not
     cam = cv2.VideoCapture(0)
 
-    print("Instructions:\n1)Use light background and dark pen an provide adequade light\n2)press b to toggle bot (!fps drop)\n3)press x to exit")
+    print("Instructions:\n1)Use light background and dark pen an provide adequade light\n3)press x to exit")
 
     while True:
         _, img = cam.read() #img stores camera feed
@@ -57,12 +57,9 @@ def from_cam(model):
         input_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   # grayscale image
         input_img = input_img[170:310, 250:390]         # cropping
         input_img = cv2.threshold(input_img, 125, 255, cv2.THRESH_BINARY_INV)[1]  #thresholding
-        input_img = cv2.resize(input_img, (28, 28))     # final input image
-    
-        text = "Bot on" if on else "Bot off"
+        input_img = resize(input_img, 28, 28)     # final input image
 
-        cv2.putText(img, text, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 4)    # prediction state
-        cv2.putText(img, prediction, (250, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 4)  # displaying prediction
+        cv2.putText(img, prediction, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 4)    # displaying prediction
 
         cv2.rectangle(img, (250, 170), (390, 310), (0, 255, 0), 3)
 
@@ -73,17 +70,13 @@ def from_cam(model):
 
         if key == ord('x'): # exit
             break 
-        if key == ord('b'): # toggle bot
-            on = True if not on else False
             
         # prediction mechanism
-        if on:
-            try:
-                prediction = predict(input_img, model)
-    
-            except:
-                print("failed")
-                break
+        try:
+            prediction = predict(input_img, model)
+        except:
+            print("failed")
+            break
 
     cam.release()
     cv2.destroyAllWindows()     # removing screen
@@ -95,16 +88,16 @@ def from_cam(model):
 def canvas(model):
     pygame.font.init()
 
-    dim = 28    # shape of the drawn input
-    screen = pygame.display.set_mode((dim*10, dim*10))
+    dim = 28    # shape of drawn input
+    screen = pygame.display.set_mode((dim*15, dim*15))
     pygame.display.set_caption('canvas')
     
     
     draw_on = False
     last_pos = (0, 0)
-    arr = np.zeros((dim, dim))  # array wihch stores the pixels, as an image
+    arr = np.zeros((dim*15, dim*15))  # array for drawn image
 
-    radius = 5
+    radius = 10
     white = (255, 255, 255)
     font = pygame.font.Font(None, 36)
 
@@ -135,6 +128,9 @@ def canvas(model):
         
         if event.type == pygame.MOUSEBUTTONUP:          # user is not drawing not drawing
             draw_on = False
+
+        if pygame.key.get_pressed()[pygame.K_r]:        # redrawing mechanism
+            canvas(model)
         
         # drawing mechanism
         if event.type == pygame.MOUSEMOTION:            
@@ -142,16 +138,19 @@ def canvas(model):
                 pygame.draw.circle(screen, white, event.pos, radius)
                 roundline(screen, white, event.pos, last_pos,  radius)
                 try:
-                    arr[event.pos[1]//10, event.pos[0]//10] = 1
+                    x, y = event.pos[1], event.pos[0]
+                    arr[x - radius : x + radius, y - radius : y + radius] = 1
                 except IndexError:
                     continue
+                
+                # prediction mechanism
+                pygame.draw.rect(screen, (0, 0, 0), (5, 5, 130, 30))
+                img = resize(arr, dim, dim)         # final input
+                text = predict(img, model)
+                render_text(text, 10, 10)
+                
             last_pos = event.pos
 
-        # prediction mechanism (it only predicts once you stop drawing)
-        elif not draw_on:
-            pygame.draw.rect(screen, (0, 0, 0), (5, 5, 130, 30))
-            text = predict(arr, model)
-            render_text(text, 10, 10)
 
         pygame.display.flip()
 
