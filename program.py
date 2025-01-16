@@ -1,4 +1,4 @@
-import keras
+from keras.models import load_model
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
@@ -15,15 +15,17 @@ def show(image):
 
 # function to make a neural network
 def make_model(data, epochs):
+    from keras.layers import Flatten, Dense, Dropout
+    from keras.models import Sequential
 
     (x_train, y_train), (x_test, y_test) = data.load_data()         # splitting data into x, y and training and testing
     x_train, x_test = x_train / 255, x_test / 255       # normalistation
 
-    model = keras.models.Sequential([
-    keras.layers.Flatten(input_shape=(28, 28)),     # image into 28*28 = 784 nodes
-    keras.layers.Dense(128, activation='relu'),     # hidden layer of 128 nodes
-    keras.layers.Dropout(0.2),                      # dropout layer to prevent overfitting
-    keras.layers.Dense(10, activation='softmax')    # output layer of 10 nodes for 10 classes
+    model = Sequential([
+    Flatten(input_shape=(28, 28)),     # image into 28*28 = 784 nodes
+    Dense(128, activation='relu'),     # hidden layer of 128 nodes
+    Dropout(0.2),                      # dropout layer to prevent overfitting
+    Dense(10, activation='softmax')    # output layer of 10 nodes for 10 classes
     ])
 
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']) 
@@ -47,9 +49,9 @@ def predict(input_image, ml_model):
 def from_cam(model):
     prediction = "" # prediction variable
     on = False      # checks if prediciton is on or not
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(0)       # Uses primary video source
 
-    print("Instructions:\n1)Use light background and dark pen an provide adequade light\n3)press x to exit")
+    print("Instructions:\n1) Use light background and dark pen and provide adequade light\n2) Show it to your webcam and place number in the box\n3) press x to exit")
 
     while True:
         _, img = cam.read() #img stores camera feed
@@ -86,6 +88,7 @@ def from_cam(model):
 
 # taking from a drawable screen
 def canvas(model):
+    print('Instructions: \n1) Draw using mouse\n2) press r to redraw \n3) click the close button to close.')
     pygame.font.init()
 
     dim = 28    # shape of drawn input
@@ -126,7 +129,7 @@ def canvas(model):
         if event.type == pygame.MOUSEBUTTONDOWN:        # user is drawing
             draw_on = True
         
-        if event.type == pygame.MOUSEBUTTONUP:          # user is not drawing not drawing
+        if event.type == pygame.MOUSEBUTTONUP:          # user is not drawing
             draw_on = False
 
         if pygame.key.get_pressed()[pygame.K_r]:        # redrawing mechanism
@@ -162,7 +165,7 @@ def canvas(model):
 def main(model):
 
     # mode of input selection
-    mode = input("Select mode of prediction: \nfor FROM CANVAS press 1 \nfor FROM WEBCAM press 2\nand press 0 to exit\n=>")
+    mode = input("Select mode of prediction: \nfor FROM CANVAS press 1 \nfor FROM WEBCAM press 2\nand press 0 to exit\n=> ")
 
     if mode == "1":
         canvas(model)
@@ -180,13 +183,15 @@ if __name__ == '__main__':
 
     # model importing
     try :
-        model = keras.models.load_model('model.h5')
+        
+        model = load_model('model.h5')      # Modify path if this is not the path to model
 
     # if model isn't in folder
     except OSError:
+        from keras.datasets import mnist
         print("it seems you don't have a model, so we will create a new model, it will take some time")
         epochs = int(input("input no. of epochs (positive integer): "))
-        make_model(keras.datasets.mnist, epochs)    # predefined model by keras, numbers dataset
-        model = keras.models.load_model('model.h5')
+        make_model(mnist, epochs)    # predefined model by keras, numbers dataset
+        model = load_model('model.h5')
 
     main(model)
